@@ -13,7 +13,7 @@ bot answers "what changed in the last 2 hours?" in plain language.
 | Week | Scope |
 |------|-------|
 | **1 — done** | GitHub webhook collector, `events` table, timeline API (`GET /api/events`), generic ingest (`POST /api/events`), health check |
-| 2 | CI + Docker events collectors, web timeline UI with time filter |
+| **2 — done** | CI webhook events (`workflow_run`, `deployment_status`), Docker events collector, web timeline UI (`GET /`) with time + around-alert filters |
 | 3 | Nightly restore job (restore latest Postgres dump into a temp container, run sanity checks, report to Telegram) |
 | 4 | Telegram bot chat commands, demo GIF, one-command `docker-compose up` |
 
@@ -49,7 +49,29 @@ In your repo: **Settings → Webhooks → Add webhook**
 - Payload URL: `https://smee.io/<your-channel>`
 - Content type: `application/json`
 - Secret: the same value as `GITHUB_WEBHOOK_SECRET`
-- Events: "Send me everything" for now (Week 1 handles `push` + `pull_request`; others are acknowledged and ignored)
+- Events: "Send me everything" (Week 2 handles `push`, `pull_request`, `workflow_run`, `deployment_status`; others are acknowledged and ignored)
+
+## Web timeline (Week 2)
+
+Open `http://localhost:8000/` — a plain-HTML timeline over the same JSON API:
+
+- **Filters:** since/until pickers, source / type / repo dropdowns (populated from the data), quick chips for **last 1h / 6h / 24h**
+- **Around alert time:** enter the alert timestamp and a ± window (15/30/60 min) to see exactly what changed around the incident
+- Events are color-coded: red for failures/OOM/exits, amber for warnings, green for successes
+
+## Docker events collector (Week 2)
+
+A small stdlib-only poller that tails `docker events` and posts container deaths,
+OOM-kills, destroys and image pulls to the API:
+
+```bash
+COPILOT_API_URL=http://localhost:8000 python -m collectors.docker_events
+```
+
+- Exits non-zero with a clear message when no Docker daemon is reachable — it never
+  affects the API process
+- Run it as a sidecar: `nohup`, a systemd unit, or a compose service with the
+  Docker socket mounted (`/var/run/docker.sock:/var/run/docker.sock:ro`)
 
 ## API reference
 

@@ -1,4 +1,7 @@
-"""GitHub webhook verification + event normalization (Week 1: push, pull_request)."""
+"""GitHub webhook verification + event normalization.
+
+Week 1: push, pull_request. Week 2: workflow_run (CI), deployment_status.
+"""
 from __future__ import annotations
 
 import hashlib
@@ -76,6 +79,44 @@ def normalize_github_event(event_name: str, payload: dict) -> dict | None:
             "repo": repo,
             "title": f"PR #{number} {action}: {pr.get('title')}",
             "url": pr.get("html_url"),
+            "payload": payload,
+        }
+    if event_name == "workflow_run":
+        # CI signal: only the completed action carries an outcome worth storing.
+        if payload.get("action") != "completed":
+            return None
+        run = payload.get("workflow_run") or {}
+        name = run.get("name") or "workflow"
+        conclusion = run.get("conclusion") or "unknown"
+        branch = run.get("head_branch") or ""
+        sha = (run.get("head_sha") or "")[:7]
+        return {
+            "source": "github",
+            "type": "workflow_run",
+            "occurred_at": _parse_dt(run.get("updated_at")),
+            "actor": sender,
+            "repo": repo,
+            "title": f"Workflow '{name}' {conclusion} on {branch} ({sha})".strip(),
+            "url": run.get("html_url"),
+            "payload": payload,
+        }
+    if event_name == "deployment_status":
+        status = payload.get("deployment_status") or {}
+        deployment = payload.get("deployment") or {}
+        state = status.get("state")
+        if not state:
+            return None
+        environment = status.get("environment") or "unknown"
+        ref = deployment.get("ref") or (deployment.get("sha") or "")[:7]
+        creator = (status.get("creator") or {}).get("login") or sender
+        return {
+            "source": "github",
+            "type": "deployment_status",
+            "occurred_at": _parse_dt(status.get("updated_at")),
+            "actor": creator,
+            "repo": repo,
+            "title": f"Deploy to {environment}: {state} ({ref})".strip(),
+            "url": status.get("target_url"),
             "payload": payload,
         }
     return None

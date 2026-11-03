@@ -1,11 +1,12 @@
-"""Incident Copilot — Week 1 API: GitHub webhooks, events table, timeline."""
+"""Incident Copilot — Week 2 API: GitHub webhooks (incl. CI events), events table, timeline UI."""
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Header, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -26,7 +27,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Incident Copilot", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Incident Copilot", version="0.2.0", lifespan=lifespan)
+
+
+@app.get("/", include_in_schema=False)
+def timeline_ui():
+    """Web timeline (Week 2): static page over the JSON API."""
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
 
 
 @app.get("/health")
