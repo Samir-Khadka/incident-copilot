@@ -19,6 +19,6 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Run tests
         env:
-          DATABASE_URL: sqlite:///:memory:
+          DATABASE_URL: "sqlite:///:memory:"
           GITHUB_WEBHOOK_SECRET: ci-test-secret
         run: pytest -v
