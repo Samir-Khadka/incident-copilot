@@ -1,4 +1,4 @@
-"""Incident Copilot — Week 2 API: GitHub webhooks (incl. CI events), events table, timeline UI."""
+"""Incident Copilot — Week 3 API: GitHub webhooks (incl. CI events), events table, timeline UI, restore-check event sink."""
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Incident Copilot", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Incident Copilot", version="0.3.0", lifespan=lifespan)
 
 
 @app.get("/", include_in_schema=False)

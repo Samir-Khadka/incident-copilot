@@ -1,0 +1,22 @@
+# Incident Copilot restore sanity checks (Week 3).
+#
+# Copy to checks.yaml and tune for YOUR database, then:
+#   python -m restore.check --backup-file /backups/latest.dump --checks checks.yaml
+#
+# A check fails the whole run if:
+#   - a table has fewer rows than its minimum, or
+#   - a custom query returns zero rows, or
+#   - a check raises (e.g. table missing) — the error is recorded, not fatal.
+
+# Per-table minimum row counts.
+tables:
+  users: 1
+  orders: 1
+
+# Custom SQL queries. Each must return at least one row to pass.
+# Use these for "the data looks sane" assertions.
+queries:
+  - name: "recent orders exist"
+    sql: "SELECT 1 FROM orders WHERE created_at > now() - interval '7 days' LIMIT 1"
+  - name: "users table present in schema"
+    sql: "SELECT 1 FROM information_schema.tables WHERE table_name = 'users' LIMIT 1"

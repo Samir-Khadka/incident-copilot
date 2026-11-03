@@ -1,0 +1,21 @@
+# Incident Copilot — nightly restore check, cron example (Week 3).
+#
+# Install with `crontab -e` (adjust paths to your checkout):
+#
+#   0 3 * * * /opt/incident-copilot/.venv/bin/python -m restore.check \
+#       --backup-file /var/backups/postgres/latest.dump \
+#       --checks /opt/incident-copilot/restore/checks.yaml \
+#       --api-url http://localhost:8000 \
+#       >> /var/log/incident-copilot/restore-check.log 2>&1
+#
+# Telegram alerts (optional — the check records its result event regardless):
+# export these in the crontab or a wrapper script. Never commit real values.
+#   TELEGRAM_BOT_TOKEN=123456:ABC...   # from @BotFather on Telegram
+#   TELEGRAM_CHAT_ID=987654321        # your user/chat id (message @userinfobot)
+#
+# Resource footprint per run: one ephemeral postgres:16.4 container
+# (~100-200 MB RAM while restoring, plus the dump size on a temp dir).
+# The container is ALWAYS removed afterwards, even when the check fails.
+#
+# Host prerequisites: docker, postgresql-client (pg_dump/pg_restore/psql),
+# python 3.12 with requirements.txt installed.
