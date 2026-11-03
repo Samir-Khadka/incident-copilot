@@ -1,19 +1,57 @@
+# Incident Copilot — one-command stack.
+#
+#   docker compose up            # db + api (the core: timeline API + web UI)
+#   docker compose --profile bot up   # + Telegram bot (needs TELEGRAM_BOT_TOKEN)
+#   docker compose --profile collectors up  # + docker-events sidecar (needs the socket)
+#
+# Copy .env.example -> .env and fill in secrets first. Never commit .env.
 services:
   db:
     image: postgres:16.4
     environment:
-      POSTGRES_USER: copilot
-      POSTGRES_PASSWORD: copilot
-      POSTGRES_DB: copilot
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-copilot}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-copilot}
+      POSTGRES_DB: ${POSTGRES_DB:-copilot}
     volumes:
       - copilot-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U copilot -d copilot"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-copilot} -d ${POSTGRES_DB:-copilot}"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  api:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-copilot}:${POSTGRES_PASSWORD:-copilot}@db:5432/${POSTGRES_DB:-copilot}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+    ports:
+      - "8000:8000"
+
+  bot:
+    build: .
+    profiles: ["bot"]
+    depends_on:
+      - api
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      COPILOT_API_URL: http://api:8000
+    command: ["python", "-m", "bot.main"]
+
+  docker-events:
+    build: .
+    profiles: ["collectors"]
+    depends_on:
+      - api
+    environment:
+      COPILOT_API_URL: http://api:8000
+    volumes:
+      # Read-only: the collector only tails `docker events`, never manages containers.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["python", "-m", "collectors.docker_events"]
 
 volumes:
   copilot-pgdata:

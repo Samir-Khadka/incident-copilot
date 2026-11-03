@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Incident Copilot", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Incident Copilot", version="0.4.0", lifespan=lifespan)
 
 
 @app.get("/", include_in_schema=False)
